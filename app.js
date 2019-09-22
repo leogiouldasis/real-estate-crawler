@@ -56,7 +56,7 @@ try {
                 }
             });
             let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
-            url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
+            // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
             logger.info('Crawling:' +  url);
             await page.goto(url)
             logger.info('Waiting for Selector');
