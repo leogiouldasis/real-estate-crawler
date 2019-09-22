@@ -45,9 +45,9 @@ try {
             else
                 request.continue();
         });
-        for (let index = 1; index < 2; index++) {
-            // await page.goto('https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=10')
-            await page.goto('https://www.xe.gr/property/search?Geo.area_id_new__hierarchy=82486&System.item_type=re_residence&Transaction.type_channel=117518&page=13&per_page=10');
+        for (let index = 1; index < 100; index++) {
+            await page.goto('https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=50')
+            // await page.goto('https://www.xe.gr/property/search?Geo.area_id_new__hierarchy=82486&System.item_type=re_residence&Transaction.type_channel=117518&page=13&per_page=10');
             logger.info('Waiting for Selector');
             await page.waitForSelector('.pager');
             let content = await page.content();
@@ -83,7 +83,7 @@ try {
                     professional_link: isProfesssional || '',
                 };
 
-                console.log(ad)
+                // console.log(ad)
 
                 data.push(ad);
                 counter += 1;
