@@ -60,9 +60,9 @@ try {
                 let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
                 // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
                 logger.info('Crawling:' + url);
-                await page.goto(url)
+                await page.goto(url, {timeout: 60000})
                 logger.info('Waiting for Selector');
-                await page.waitForSelector('.pager');
+                await page.waitForSelector('.pager', {timeout: 60000});
                 let content = await page.content();
                 let $ = cheerio.load(content);
                 await page.close();
@@ -149,7 +149,7 @@ try {
                         updated_at: new Date()
                     };
 
-                    // console.log(ad)
+                    console.log(ad)
                     data.push(ad);
                     counter += 1;
                 });
