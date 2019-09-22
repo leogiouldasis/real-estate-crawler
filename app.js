@@ -44,9 +44,12 @@ try {
                 page = await browser.newPage()
                 await page.setViewport({ width: 800, height: 600 })
                 // To ensure XE doesn't detect it as a Bot
-                await page.setExtraHTTPHeaders({
-                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
-                });
+                if(process.env.EXTRA_HEADERS) {
+                    await page.setExtraHTTPHeaders({
+                        'Accept-Language': process.env.ACCEPT_LANGUAGE
+                    });
+                }
+                
                 await page.setRequestInterception(true);
                 const block_ressources = ['image', 'stylesheet', 'media', 'font', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'];
                 page.on('request', request => {
