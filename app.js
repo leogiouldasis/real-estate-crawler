@@ -49,15 +49,16 @@ try {
             const block_ressources = ['image', 'stylesheet', 'media', 'font', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'];
             page.on('request', request => {
                 //if (request.resourceType() === 'image')
-                if (block_ressources.indexOf(request.resourceType) > 0)
+                if (block_ressources.indexOf(request.resourceType) > 0) {
                     request.abort();
-                else
+                } else {
                     request.continue();
+                }
             });
             let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
+            url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
             logger.info('Crawling:' +  url);
             await page.goto(url)
-            // await page.goto('https://www.xe.gr/property/search?Geo.area_id_new__hierarchy=82486&System.item_type=re_residence&Transaction.type_channel=117518&page=13&per_page=10');
             logger.info('Waiting for Selector');
             await page.waitForSelector('.pager');
             let content = await page.content();
@@ -81,21 +82,72 @@ try {
                 }
 
                 // Check if professional or not
-                isProfesssional = $(this).find('.pro_action_hotspot').attr('href') || false;
+                const isProfesssional = $(this).find('.pro_action_hotspot').attr('href') || false;
+                const price = $(this).find('.r_price').text().replace(/\D+/g, '');
+                const tm = $(this).find('.r_stats :nth-child(2)').text().replace('τ.μ.', '').trim();
+                const areaFull = $(this).data('area').split('>');
+                
+                let state = '';
+                let nomos = '';
+                let tomeas = '';
+                if (areaFull[0].trim() === 'Νομός Αττικής') {
+                    state = 'Στερεά Ελλάδα';
+                    nomos = 'Νομός Αττικής';
+                    tomeas = areaFull[1];
+                } else if (areaFull[0].trim() === 'Ν. Θεσσαλονίκης') {
+                    state = 'Μακεδονία';
+                    nomos = 'Ν. Θεσσαλονίκης';
+                    tomeas = areaFull[1];
+                } else if (areaFull[0].trim() === 'Ν. Χαλκιδικής') {
+                    state = 'Μακεδονία';
+                    nomos = 'Ν. Χαλκιδικής';
+                } else if (areaFull[0].trim() === 'Ν. Λέσβου') {
+                    state = 'Νήσοι Αιγαίου Πελάγους';
+                    nomos = 'Ν. Λέσβου';
+                } else if (areaFull[0].trim() === 'Ν. Χίου') {
+                    state = 'Νήσοι Αιγαίου Πελάγους';
+                    nomos = 'Ν. Χίου';
+                } else {
+                    state = areaFull[0];
+                    nomos = areaFull[1];
+                }
+                
+                // Municipality specific rules
+                let municipality = '';
+                if (areaFull.length > 3) {
+                    municipality = areaFull[2];
+                } else if(areaFull.length > 2) {
+                    municipality = areaFull[2];
+                } else if(areaFull.length > 1) {
+                    municipality = areaFull[1];
+                } else {
+                    nomos = nomos || areaFull[0];
+                }
 
+                const xeDate = $(this).data('edata');
+
+                 
                 let ad = {
                     id: $(this).data('id'),
                     area_full: $(this).data('area'),
-                    href: $(this).find('a').attr('href'),
-                    type: hrefData[0],
-                    tm: hrefData[1],
+                    state: state.trim(),
+                    nomos: nomos.trim(),
+                    tomeas: tomeas.trim(),
+                    municipality: municipality.trim(),
                     area: area.trim(),
+                    href: 'https://www.xe.gr' + $(this).find('a').attr('href'),
+                    type: hrefData[0],
+                    price: +price,
+                    tm: +tm,
+                    cost_tm: +(price/tm).toFixed(0), 
                     is_professional: isProfesssional ? 'yes' : 'no',
                     professional_link: isProfesssional || '',
+                    description: $(this).find('p').text().replace(/(\r\n|\n|\r|\t)/gm, "").trim(),
+                    xe_date: xeDate ? new Date(xeDate) : null,
+                    updated_at: new Date()
                 };
 
                 // console.log(ad)
-
                 data.push(ad);
                 counter += 1;
             });
@@ -104,6 +156,7 @@ try {
                 if (record) {
                     await mongo_db.collection('xe_ads').updateOne({id : data[index].id}, { $set:  data[index] });
                 } else {
+                    data[index].created_at = new Date();
                     await mongo_db.collection('xe_ads').insertOne(data[index]);
                 }
             }
