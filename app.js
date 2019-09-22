@@ -39,9 +39,9 @@ try {
         logger.info('Crawling from:' + start + ' to:' + finish)
 
         for (let index = start; index < finish; index++) {
-
+            let page;
             try {
-                const page = await browser.newPage()
+                page = await browser.newPage()
                 await page.setViewport({ width: 800, height: 600 })
                 // To ensure XE doesn't detect it as a Bot
                 await page.setExtraHTTPHeaders({
@@ -57,7 +57,7 @@ try {
                         request.continue();
                     }
                 });
-                let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
+                let url = 'https://www.xee.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
                 // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
                 logger.info('Crawling:' + url);
                 await page.goto(url)
@@ -164,6 +164,7 @@ try {
                 }
             } catch (error) {
                 console.log(error)
+                await page.close();
             }
         }
 
