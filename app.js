@@ -30,11 +30,18 @@ try {
     // That's it, the rest is puppeteer usage as normal 😊
     puppeteer.launch({ headless: true, args: ['--no-sandbox'] }).then(async browser => {
         let counter = 1;
+        const offset = process.env.WORKER_OFFSET;
+        const limit = process.env.WORKER_LIMIT;
+        const start = 1 + +offset;
+        const finish = +start + +limit;
+        const resultsPerPage = process.env.RESULTS_PER_PAGE;
 
-        for (let index = 1; index < 100; index++) {
+        logger.info('Crawling from:'+start+ ' to:'+finish)
+
+        for (let index = start; index < finish; index++) {
             const page = await browser.newPage()
             await page.setViewport({ width: 800, height: 600 })
-            // To ensure Amazon doesn't detect it as a Bot
+            // To ensure XE doesn't detect it as a Bot
             await page.setExtraHTTPHeaders({
                 'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'
             });
@@ -47,8 +54,9 @@ try {
                 else
                     request.continue();
             });
-
-            await page.goto('https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=50')
+            let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
+            logger.info('Crawling:' +  url);
+            await page.goto(url)
             // await page.goto('https://www.xe.gr/property/search?Geo.area_id_new__hierarchy=82486&System.item_type=re_residence&Transaction.type_channel=117518&page=13&per_page=10');
             logger.info('Waiting for Selector');
             await page.waitForSelector('.pager');
