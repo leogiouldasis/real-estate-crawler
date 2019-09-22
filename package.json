@@ -1,11 +1,9 @@
 {
   "name": "real-estate-crawler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js",
-    "test": "mocha --timeout 10000"
   },
   "repository": {
     "type": "git",
