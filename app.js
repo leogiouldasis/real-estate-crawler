@@ -29,7 +29,10 @@ try {
     console.time('ProcessTime')
     // That's it, the rest is puppeteer usage as normal 😊
     puppeteer.launch({ headless: true, args: ['--no-sandbox'] }).then(async browser => {
-        let counter = 1;
+        let counter = 0;
+        let inserted = 0;
+        let updated = 0;
+        let failedPages = 0;
         const offset = process.env.WORKER_OFFSET;
         const limit = process.env.WORKER_LIMIT;
         const start = 1 + +offset;
@@ -61,11 +64,17 @@ try {
                     }
                 });
                 let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
-                // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&per_page=10&Geo.area_id_new__hierarchy=82195';
+                url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&page=4430&per_page=50';
                 logger.info('Crawling:' + url);
                 await page.goto(url, {timeout: 60000})
                 logger.info('Waiting for Selector');
-                await page.waitForSelector('.pager', {timeout: 60000});
+                try {
+                    await page.waitForSelector('.pager', {timeout: 20000});
+                } catch (error) {
+                    failedPages += 1;
+                    logger.info('No selector found')
+                }
+                
                 let content = await page.content();
                 let $ = cheerio.load(content);
                 await page.close();
@@ -160,9 +169,11 @@ try {
                     const record = await mongo_db.collection('xe_ads').findOne({ id: data[index].id });
                     if (record) {
                         await mongo_db.collection('xe_ads').updateOne({ id: data[index].id }, { $set: data[index] });
+                        updated += 1;
                     } else {
                         data[index].created_at = new Date();
                         await mongo_db.collection('xe_ads').insertOne(data[index]);
+                        inserted += 1;
                     }
                 }
             } catch (error) {
@@ -172,7 +183,11 @@ try {
         }
 
         logger.info('Crawled:' + counter);
-        console.timeEnd('ProcessTime')
+        logger.info('Inserted:' + inserted);
+        logger.info('Updated:' + updated);
+        logger.info('Failed Pages:' + failedPages);
+        
+        console.timeEnd('ProcessTime');
     })
 } catch (error) {
     console.log(error)
