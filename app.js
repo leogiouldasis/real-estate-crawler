@@ -64,12 +64,12 @@ try {
                     }
                 });
                 let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
-                url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&page=4430&per_page=50';
+                // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&page=4430&per_page=50';
                 logger.info('Crawling:' + url);
                 await page.goto(url, {timeout: 60000})
                 logger.info('Waiting for Selector');
                 try {
-                    await page.waitForSelector('.pager', {timeout: 20000});
+                    await page.waitForSelector('.pager', {timeout: 60000});
                 } catch (error) {
                     failedPages += 1;
                     logger.info('No selector found')
