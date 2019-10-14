@@ -174,8 +174,8 @@ try {
                         is_professional: isProfesssional ? 'yes' : 'no',
                         professional_link: isProfesssional || '',
                         description: $(this).find('p').text().replace(/(\r\n|\n|\r|\t)/gm, "").trim(),
-                        xe_date: xeDate ? moment(xeDate).format() : null,
-                        updated_at: moment().format(),
+                        xe_date: xeDate ? moment(xeDate).toISOString() : null,
+                        updated_at: moment().toISOString(),
                     };
 
                     // console.log(ad)
@@ -185,7 +185,7 @@ try {
                 for (let index = 0; index < data.length; index++) {
                     const record = await mongo_db.collection('xe_ads').findOne({ id: data[index].id });
                     if (record) {
-                        data[index].crawled_at = moment().format() 
+                        data[index].crawled_at = moment().toISOString() 
                         await mongo_db.collection('xe_ads').updateOne({ id: data[index].id }, { $set: data[index] });
                         updated += 1; 
                     } else {
@@ -232,9 +232,9 @@ try {
                         data[index].phone = $(".phone-area").find('a').attr('href').replace(/\D/g,'');      
                         data[index].description_content = $(".description-content").text().trim();
                         let xeCreatedDate = $(".stats-content").find('div :nth-child(1)').text().replace('Δημιουργία αγγελίας:', '').trim().split(' ');
-                        data[index].xe_created_at = moment(xeCreatedDate[3] +'-'+ monthMapping[xeCreatedDate[2]] +'-'+ xeCreatedDate[1]).format();
-                        data[index].crawled_at = moment().format()
-                        data[index].created_at = moment().format() 
+                        data[index].xe_created_at = moment(xeCreatedDate[3] +'-'+ monthMapping[xeCreatedDate[2]] +'-'+ xeCreatedDate[1]).toISOString();
+                        data[index].crawled_at = moment().toISOString()
+                        data[index].created_at = moment().toISOString() 
                         await mongo_db.collection('xe_ads').insertOne(data[index]);
                         inserted += 1;
                     }
