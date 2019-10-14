@@ -3,6 +3,7 @@ require('dotenv').config()
 // it augments the installed puppeteer with plugin functionality.
 // Any number of plugins can be added through `puppeteer.use()`
 const puppeteer = require("puppeteer-extra");
+const moment = require("moment");
 const cheerio = require("cheerio");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth")
@@ -22,6 +23,21 @@ MongoClient.connect(mongoDbUrl, { useNewUrlParser: true, useUnifiedTopology: tru
     }
 });
 
+const monthMapping = {
+    'Ιανουαρίου': '01',
+    'Φεβρουαρίου': '02',
+    'Μαρτίου': '03',
+    'Απριλίου': '04',
+    'Μαΐου': '05',
+    'Ιουνίου': '06',
+    'Ιουλίου' : '07',
+    'Αυγούστου': '08',
+    'Σεπτεμβρίου': '09',
+    'Οκτωβρίου': '10',
+    'Νοεμβρίου': '11',
+    'Δεκεμβρίου': '12'
+};
+
 // Add plugin to anonymize the User-Agent and signal Windows as platform
 const UserAgentPlugin = require("puppeteer-extra-plugin-anonymize-ua")
 puppeteer.use(UserAgentPlugin({ makeWindows: true }))
@@ -33,6 +49,7 @@ try {
         let inserted = 0;
         let updated = 0;
         let failedPages = 0;
+        let failedAds = 0;
         const offset = process.env.WORKER_OFFSET;
         const limit = process.env.WORKER_LIMIT;
         const start = 1 + +offset;
@@ -67,7 +84,7 @@ try {
                 // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&page=4430&per_page=50';
                 logger.info('Crawling:' + url);
                 await page.goto(url, {timeout: 60000})
-                logger.info('Waiting for Selector');
+                logger.info('Waiting for Listing Load');
                 try {
                     await page.waitForSelector('.pager', {timeout: 60000});
                 } catch (error) {
@@ -157,8 +174,8 @@ try {
                         is_professional: isProfesssional ? 'yes' : 'no',
                         professional_link: isProfesssional || '',
                         description: $(this).find('p').text().replace(/(\r\n|\n|\r|\t)/gm, "").trim(),
-                        xe_date: xeDate ? new Date(xeDate) : null,
-                        updated_at: new Date()
+                        xe_date: xeDate ? moment(xeDate).format() : null,
+                        updated_at: moment().format(),
                     };
 
                     // console.log(ad)
@@ -168,10 +185,56 @@ try {
                 for (let index = 0; index < data.length; index++) {
                     const record = await mongo_db.collection('xe_ads').findOne({ id: data[index].id });
                     if (record) {
+                        data[index].crawled_at = moment().format() 
                         await mongo_db.collection('xe_ads').updateOne({ id: data[index].id }, { $set: data[index] });
-                        updated += 1;
+                        updated += 1; 
                     } else {
-                        data[index].created_at = new Date();
+                        page = await browser.newPage()
+                        await page.setViewport({ width: 800, height: 600 })
+                        // To ensure XE doesn't detect it as a Bot
+                        if(process.env.EXTRA_HEADERS) {
+                            await page.setExtraHTTPHeaders({
+                                'Accept-Language': process.env.ACCEPT_LANGUAGE
+                            });
+                        }
+                        
+                        await page.setRequestInterception(true);
+                        const block_ressources = ['image', 'stylesheet', 'media', 'font', 'texttrack', 'object', 'beacon', 'csp_report', 'imageset'];
+                        page.on('request', request => {
+                            //if (request.resourceType() === 'image')
+                            if (block_ressources.indexOf(request.resourceType) > 0) {
+                                request.abort();
+                            } else {
+                                request.continue();
+                            }
+                        });
+                        logger.info('Crawling:' + encodeURI(data[index].href));
+                        await page.goto(encodeURI(data[index].href), {timeout: 60000})
+                        logger.info('Waiting for Ad load');
+                        try {
+                            await page.waitForSelector('.phone-area', {timeout: 60000});
+                        } catch (error) {
+                            failedAds += 1;
+                            logger.info('No selector (phone-area) found')
+                        }
+                        
+                        let content = await page.content();
+                        let $ = cheerio.load(content);
+                        await page.close();
+
+                        if ($("title").text() === 'Pardon Our Interruption') {
+                            logger.error('Blocked');
+                        } else {
+                            logger.info('Found Content on AD');
+                        }
+                        
+                        // Additional info from ad page
+                        data[index].phone = $(".phone-area").find('a').attr('href').replace(/\D/g,'');      
+                        data[index].description_content = $(".description-content").text().trim();
+                        let xeCreatedDate = $(".stats-content").find('div :nth-child(1)').text().replace('Δημιουργία αγγελίας:', '').trim().split(' ');
+                        data[index].xe_created_at = moment(xeCreatedDate[3] +'-'+ monthMapping[xeCreatedDate[2]] +'-'+ xeCreatedDate[1]).format();
+                        data[index].crawled_at = moment().format()
+                        data[index].created_at = moment().format() 
                         await mongo_db.collection('xe_ads').insertOne(data[index]);
                         inserted += 1;
                     }
@@ -186,6 +249,7 @@ try {
         logger.info('Inserted:' + inserted);
         logger.info('Updated:' + updated);
         logger.info('Failed Pages:' + failedPages);
+        logger.info('Failed Ads:' + failedAds);
         
         console.timeEnd('ProcessTime');
     })
