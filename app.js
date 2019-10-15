@@ -229,7 +229,8 @@ try {
                         }
                         
                         // Additional info from ad page
-                        data[index].phone = $(".phone-area").find('a').attr('href').replace(/\D/g,'');      
+                        let phone = $(".phone-area").find('a').attr('href');
+                        data[index].phone = phone ? phone.replace(/\D/g,'') : null;      
                         data[index].description_content = $(".description-content").text().trim();
                         let xeCreatedDate = $(".stats-content").find('div :nth-child(1)').text().replace('Δημιουργία αγγελίας:', '').trim().split(' ');
                         data[index].xe_created_at = moment(xeCreatedDate[3] +'-'+ monthMapping[xeCreatedDate[2]] +'-'+ xeCreatedDate[1]).toDate();
