@@ -80,7 +80,7 @@ try {
                         request.continue();
                     }
                 });
-                let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
+                let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage + '&sort_by=Publication.effective_date_start&sort_direction=desc';
                 // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&Geo.area_id_new__hierarchy=82455&Transaction.price.from=300000&Transaction.price.to=300000&Item.area.from=270&Item.area.to=270';
                 logger.info('Crawling:' + url);
                 await page.goto(url, {timeout: 60000})
