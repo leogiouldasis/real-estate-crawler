@@ -81,12 +81,13 @@ try {
                     }
                 });
                 let url = 'https://www.xe.gr/property/search?Transaction.type_channel=117518&page=' + index + '&per_page=' + resultsPerPage;
-                // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&page=4430&per_page=50';
+                // url = 'https://www.xe.gr/property/search?System.item_type=re_residence&Transaction.type_channel=117518&Geo.area_id_new__hierarchy=82455&Transaction.price.from=300000&Transaction.price.to=300000&Item.area.from=270&Item.area.to=270';
                 logger.info('Crawling:' + url);
                 await page.goto(url, {timeout: 60000})
                 logger.info('Waiting for Listing Load');
                 try {
                     await page.waitForSelector('.pager', {timeout: 60000});
+                    // await page.waitForSelector('.saveSearch_btn', {timeout: 60000});
                 } catch (error) {
                     failedPages += 1;
                     logger.info('No selector found')
@@ -114,6 +115,7 @@ try {
 
                     // Check if professional or not
                     const isProfesssional = $(this).find('.pro_action_hotspot').attr('href') || false;
+                    const isPrivate = $(this).find('.r_private').attr('title') || false;
                     const price = $(this).find('.r_price').text().replace(/\D+/g, '');
                     const tm = $(this).find('.r_stats :nth-child(2)').text().replace('τ.μ.', '').trim();
                     const areaFull = $(this).data('area').split('>');
@@ -171,7 +173,7 @@ try {
                         price: +price,
                         tm: +tm,
                         cost_tm: +(price / tm).toFixed(0),
-                        is_professional: isProfesssional ? 'yes' : 'no',
+                        is_professional: isPrivate ? 'no' : 'yes',
                         professional_link: isProfesssional || '',
                         description: $(this).find('p').text().replace(/(\r\n|\n|\r|\t)/gm, "").trim(),
                         xe_date: xeDate ? moment(xeDate).toDate() : null,
@@ -185,6 +187,7 @@ try {
                 for (let index = 0; index < data.length; index++) {
                     const record = await mongo_db.collection('xe_ads').findOne({ id: data[index].id });
                     if (record) {
+                        logger.info('Updating AD:' + (data[index].id));
                         data[index].crawled_at = moment().toDate() 
                         await mongo_db.collection('xe_ads').updateOne({ id: data[index].id }, { $set: data[index] });
                         updated += 1; 
@@ -210,7 +213,7 @@ try {
                         });
                         logger.info('Crawling:' + encodeURI(data[index].href));
                         await page.goto(encodeURI(data[index].href), {timeout: 60000})
-                        logger.info('Waiting for Ad load');
+                        logger.info('Waiting for Ad:' + data[index].id);
                         try {
                             await page.waitForSelector('.phone-area', {timeout: 60000});
                         } catch (error) {
