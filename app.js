@@ -198,7 +198,6 @@ try {
                         updated_at: new Date()
                     };
 
-                    console.log(ad)
                     data.push(ad);
                     counter += 1;
                 });
