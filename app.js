@@ -38,6 +38,21 @@ const monthMapping = {
     'Δεκεμβρίου': '12'
 };
 
+const monthShortMapping = {
+    'Ιαν': '01',
+    'Φεβ': '02',
+    'Μαρ': '03',
+    'Απρ': '04',
+    'Μαΐ': '05',
+    'Ιουν': '06',
+    'Ιουλ' : '07',
+    'Αυγ': '08',
+    'Σεπ': '09',
+    'Οκτ': '10',
+    'Νοε': '11',
+    'Δεκ': '12'
+};
+
 // Add plugin to anonymize the User-Agent and signal Windows as platform
 const UserAgentPlugin = require("puppeteer-extra-plugin-anonymize-ua")
 puppeteer.use(UserAgentPlugin({ makeWindows: true }))
@@ -157,8 +172,11 @@ try {
                         nomos = nomos || areaFull[0];
                     }
 
-                    const xeDate = $(this).data('edata');
-
+                    const d = new Date();
+                    const hour = d.getHours();
+                    const minutes = d.getMinutes();
+                    let xeDate = $(this).find('.r_date').text().trim().split(' ');
+                    xeDate = new Date(xeDate[3] +'-'+ monthShortMapping[xeDate[2]] +'-'+ xeDate[1] +' '+ hour + ':' + minutes );
 
                     let ad = {
                         id: $(this).data('id'),
@@ -176,11 +194,11 @@ try {
                         is_professional: isPrivate ? 'no' : 'yes',
                         professional_link: isProfesssional || '',
                         description: $(this).find('p').text().replace(/(\r\n|\n|\r|\t)/gm, "").trim(),
-                        xe_date: xeDate ? moment(xeDate).toDate() : null,
-                        updated_at: moment(xeDate).toDate()
+                        xe_date: xeDate,
+                        updated_at: new Date()
                     };
 
-                    // console.log(ad)
+                    console.log(ad)
                     data.push(ad);
                     counter += 1;
                 });
@@ -237,8 +255,8 @@ try {
                         data[index].description_content = $(".description-content").text().trim();
                         let xeCreatedDate = $(".stats-content").find('div :nth-child(1)').text().replace('Δημιουργία αγγελίας:', '').trim().split(' ');
                         data[index].xe_created_at = moment(xeCreatedDate[3] +'-'+ monthMapping[xeCreatedDate[2]] +'-'+ xeCreatedDate[1]).toDate();
-                        data[index].crawled_at = moment().toDate()
-                        data[index].created_at = moment().toDate() 
+                        data[index].crawled_at = new Date()
+                        data[index].created_at = new Date()
                         await mongo_db.collection('xe_ads').insertOne(data[index]);
                         inserted += 1;
                     }
